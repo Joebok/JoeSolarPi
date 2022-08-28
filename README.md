@@ -39,7 +39,7 @@ You will also need the following python modules - I think these are pretty stand
 - import logging
 
 ## Config
-The code first looks for "MySolarData.config" and if not found looks for SolarData.config. There is a script, configWriter.py, which will generate the defaul config file. Copy the default config file and edit it to set your site_id and api_key values. Make any other changes as you see fit.
+The code first looks for "MyJoeSolarPi.config" and if not found looks for JoeSolarPi.config. There is a script, configWriter.py, which will generate the defaul config file. Copy the default config file and edit it to set your site_id and api_key values. Make any other changes as you see fit.
 
 In particular, check the "rotation" value in the Display section if the bars it is showing aren't vertical. (For the simulator, the rotation value in the config is not used.) You will also want to set values in KW an KWH in the PVSettings section to scale the bars. You'll want pvpower to be the max KW that your system will produce, and maxEnergy to be the max it will produce in a day to make best use of the screen area.
 

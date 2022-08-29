@@ -32,7 +32,7 @@ def getYesterdayData():
         endTime = urllib.parse.quote_plus( yesterday.strftime("%Y-%m-%d")+" 23:59:59")
 
         dailyEnergyURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
-        day_data = requests.get(dailyEnergyURL).json()
+        day_data = requests.get(dailyEnergyURL, verify=False).json()
 
         global yesterdayConsump 
         global yesterdayProduction 
@@ -63,68 +63,67 @@ def getSolarData():
     plotGetData()
 
     try:
-
-        currentPowerURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/currentPowerFlow?api_key=' +api_key
-        json_data = requests.get(currentPowerURL).json()
-
         startTime = urllib.parse.quote_plus( date.today().strftime("%Y-%m-%d")+" 00:00:00")
         endTime = urllib.parse.quote_plus( date.today().strftime("%Y-%m-%d")+" 23:59:59")
 
         dailyEnergyURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
-        day_data = requests.get(dailyEnergyURL).json()
+        print("reading energy values...")
+        energy_data = requests.get(dailyEnergyURL, verify=False).json()
 
-        #print(json_data)
-        #print(day_data)
         dayConsumption = 0
         dayProduction = 0
-        dayUnit = day_data["energyDetails"]["unit"]
-        for meter in day_data["energyDetails"]["meters"]:
+        dayUnit = energy_data["energyDetails"]["unit"]
+        for meter in energy_data["energyDetails"]["meters"]:
             #print(meter)
             if meter["type"] == "Consumption":
                 dayConsumption = meter["values"][0]["value"]
             if meter["type"] == "Production":
                 dayProduction = meter["values"][0]["value"]
 
+        currentPowerURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/currentPowerFlow?api_key=' +api_key
+        power_data = requests.get(currentPowerURL, verify=False).json()
+
         #get units
-        unit = json_data["siteCurrentPowerFlow"]["unit"]
+        unit = power_data["siteCurrentPowerFlow"]["unit"]
 
         #determine if battery is charging or discharging
         batteryState = ""
         batteryFlow = 1
-        for conn in json_data["siteCurrentPowerFlow"]["connections"]:
+        for conn in power_data["siteCurrentPowerFlow"]["connections"]:
             #print(conn)
             if conn["from"].lower()=="storage":
-                batteryState = "discharging"
+                batteryState = "(discharging)"
                 batteryFlow = -1
             if conn["to"].lower()=="storage":
-                batteryState="charging"
+                batteryState="(charging)"
                 batteryFlow = 1
-
-        if len(batteryState)>0:
-            batteryState = "({})".format(batteryState)
+            if conn["to"].lower()=="grid":
+                gridState="(selling)"
+            if conn["from"].lower()=="grid":
+                gridState="(buying)"
 
         try:
-            gridPower = json_data["siteCurrentPowerFlow"]["GRID"]["currentPower"]
+            gridPower = power_data["siteCurrentPowerFlow"]["GRID"]["currentPower"]
         except:
             gridPower = 0
 
         try:
-            loadPower = json_data["siteCurrentPowerFlow"]["LOAD"]["currentPower"]
+            loadPower = power_data["siteCurrentPowerFlow"]["LOAD"]["currentPower"]
         except:
             loadPower = 0
 
         try:    
-            pvPower = json_data["siteCurrentPowerFlow"]["PV"]["currentPower"]
+            pvPower = power_data["siteCurrentPowerFlow"]["PV"]["currentPower"]
         except:
             pvPower = 0
 
         try:
-            batteryPower = json_data["siteCurrentPowerFlow"]["STORAGE"]["currentPower"]
+            batteryPower = power_data["siteCurrentPowerFlow"]["STORAGE"]["currentPower"]
         except:
             batteryPower = 0
 
         try:
-            batteryLevel = json_data["siteCurrentPowerFlow"]["STORAGE"]["chargeLevel"]
+            batteryLevel = power_data["siteCurrentPowerFlow"]["STORAGE"]["chargeLevel"]
         except:
             batteryLevel = 0
 
@@ -145,12 +144,12 @@ def getSolarData():
     print()
     print(datetime.now())
     print("Load: {} {}".format(loadPower, unit))
-    print("Grid Power: {} {}".format(gridPower,unit))
+    print("Grid Power: {} {} {}".format(gridPower,unit, gridState))
     print("PV Power: {} {}".format(pvPower, unit))
     print("Battery Power: {} {}".format(batteryFlow * batteryPower, unit))
     print("Battery Level: {}% {}".format(batteryLevel,batteryState))
     print("Consumption Today: {} {}".format(dayConsumption, dayUnit))
-    print("production Today: {} {}".format(dayProduction, dayUnit))
+    print("Production Today: {} {}".format(dayProduction, dayUnit))
     print()
     
     if "(charging)" in batteryState:
@@ -341,7 +340,7 @@ i = 0
 try:
     while True:
         i += 1
-        if i==2:
+        if i==20:
             i = 1
             ReadConfig()
         getSolarData()

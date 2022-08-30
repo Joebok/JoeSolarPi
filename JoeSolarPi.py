@@ -32,7 +32,7 @@ def getYesterdayData():
         startTime = urllib.parse.quote_plus( yesterday.strftime("%Y-%m-%d")+" 00:00:00")
         endTime = urllib.parse.quote_plus( yesterday.strftime("%Y-%m-%d")+" 23:59:59")
 
-        dailyEnergyURL = 'zhttps://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
+        dailyEnergyURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
         day_data = requests.get(dailyEnergyURL, verify=False).json()
 
         global yesterdayConsump 
@@ -67,7 +67,7 @@ def getYesterdayData():
     print("Yesterday Consumption: {} KWh".format(yesterdayConsump))
     if status != "ok":
         print(status)
-        
+
 # get current production and consumption
 def getSolarData():
     plotGetData()
@@ -225,10 +225,11 @@ def plotEnergy(consumption, production, unit):
         clrProd = AddColors([0,0,0],clrProd,.5)
         clrConsump = AddColors([110,110,110], clrConsumeEnergy, .5)
         clrConsump = AddColors([0,0,0],clrConsump,.5)
-        if y==yesterdayProdY:
-            unicornhathd.set_pixel(col_offset + 1, y, clrProd[0], clrProd[1], clrProd[2])
-        if y==yesterdayConsumpY:
-            unicornhathd.set_pixel(col_offset + energyCols + 1, y, clrConsump[0], clrConsump[1], clrConsump[2])
+        if yesterdayConsump > 0:
+            if y==yesterdayProdY:
+                unicornhathd.set_pixel(col_offset + 1, y, clrProd[0], clrProd[1], clrProd[2])
+            if y==yesterdayConsumpY:
+                unicornhathd.set_pixel(col_offset + energyCols + 1, y, clrConsump[0], clrConsump[1], clrConsump[2])
 
     unicornhathd.show()
 

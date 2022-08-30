@@ -24,14 +24,15 @@ except ImportError:
 # get previous day's production and consumption
 def getYesterdayData():
     plotGetData()
-
+    status = "ok"
     try:
+        global yesterday
         yesterday = date.today() + timedelta(days = -1)
 
         startTime = urllib.parse.quote_plus( yesterday.strftime("%Y-%m-%d")+" 00:00:00")
         endTime = urllib.parse.quote_plus( yesterday.strftime("%Y-%m-%d")+" 23:59:59")
 
-        dailyEnergyURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
+        dailyEnergyURL = 'zhttps://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
         day_data = requests.get(dailyEnergyURL, verify=False).json()
 
         global yesterdayConsump 
@@ -42,9 +43,15 @@ def getYesterdayData():
         for meter in day_data["energyDetails"]["meters"]:
             #print(meter)
             if meter["type"] == "Consumption":
-                yesterdayConsump = meter["values"][0]["value"]
+                try:
+                    yesterdayConsump = meter["values"][0]["value"]
+                except:
+                    yesterdayConsump = 0
             if meter["type"] == "Production":
-                yesterdayProduction = meter["values"][0]["value"]
+                try:
+                    yesterdayProduction = meter["values"][0]["value"]
+                except:
+                    yesterdayProduction = 0
 
         if dayUnit == "Wh":
             yesterdayConsump = yesterdayConsump / 1000
@@ -54,10 +61,13 @@ def getYesterdayData():
         logger.error(e)
         yesterdayConsump = 0
         yesterdayProduction = 0
+        status = "err"
 
     print("Yesterday Production: {} KWh".format(yesterdayProduction))
     print("Yesterday Consumption: {} KWh".format(yesterdayConsump))
-
+    if status != "ok":
+        print(status)
+        
 # get current production and consumption
 def getSolarData():
     plotGetData()
@@ -334,10 +344,13 @@ ReadConfig()
 
 powerList = [ [ [0,0,0] for y in range(u_height) ] for x in range(powerCols) ]
 
-getYesterdayData()
+yesterday = date.today()
 
 try:
     while True:
+        if (date.today() + timedelta(days = -1) != yesterday) or yesterdayConsump <= 0:
+            getYesterdayData()
+
         getSolarData()
         time.sleep(refreshRate)
 

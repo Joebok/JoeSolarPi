@@ -336,13 +336,8 @@ powerList = [ [ [0,0,0] for y in range(u_height) ] for x in range(powerCols) ]
 
 getYesterdayData()
 
-i = 0
 try:
     while True:
-        i += 1
-        if i==20:
-            i = 1
-            ReadConfig()
         getSolarData()
         time.sleep(refreshRate)
 

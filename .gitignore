@@ -130,3 +130,4 @@ dmypy.json
 MySolarData.config
 .DS_Store
 MyJoeSolarPi.config
+debug.txt

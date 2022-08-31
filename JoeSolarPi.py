@@ -85,6 +85,10 @@ def getSolarData():
         debug_log("getSolarData")
     plotGetData()
 
+    gridState = ("unknown")
+    batteryState = ""
+    batteryFlow = 1
+
     try:
         startTime = urllib.parse.quote_plus( date.today().strftime("%Y-%m-%d")+" 00:00:00")
         endTime = urllib.parse.quote_plus( date.today().strftime("%Y-%m-%d")+" 23:59:59")
@@ -94,6 +98,7 @@ def getSolarData():
         if writedebug:
             debug_log(dailyEnergyURL)
         energy_data = requests.get(dailyEnergyURL, verify=False).json()
+
         if writedebug:
             debug_log(energy_data)
 
@@ -106,9 +111,15 @@ def getSolarData():
             if writedebug:
                 debug_log(meter)
             if meter["type"] == "Consumption":
-                dayConsumption = meter["values"][0]["value"]
+                try:
+                    dayConsumption = meter["values"][0]["value"]
+                except:
+                    dayConsumption = 0
             if meter["type"] == "Production":
-                dayProduction = meter["values"][0]["value"]
+                try:
+                    dayProduction = meter["values"][0]["value"]
+                except:
+                    dayProduction = 0
 
         currentPowerURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/currentPowerFlow?api_key=' +api_key
         if writedebug:
@@ -120,9 +131,7 @@ def getSolarData():
         #get units
         unit = power_data["siteCurrentPowerFlow"]["unit"]
 
-        #determine if battery is charging or discharging
-        batteryState = ""
-        batteryFlow = 1
+        #determine meter states
         if writedebug:
             debug_log("reading connections...")
         for conn in power_data["siteCurrentPowerFlow"]["connections"]:

@@ -363,9 +363,9 @@ def ReadConfig():
             global brightness
             brightness = config["DisplaySettings"].getfloat("brightness")
             global maxPower
-            maxPower = config["PVSettings"].getint("maxPower")
+            maxPower = config["PVSettings"].getint("maxPower") / 1000
             global maxEnergy
-            maxEnergy = config["PVSettings"].getint("maxEnergy")
+            maxEnergy = config["PVSettings"].getint("maxEnergy") / 1000
             global clrPV
             clrPV = json.loads(config.get("Colors","PVpower"))
             global clrLoad
@@ -376,7 +376,7 @@ def ReadConfig():
             clrConsumeEnergy = json.loads(config.get("Colors","ConsumeEnergy"))
             global clrBatteryLevel
             clrBatteryLevel = json.loads(config.get("Colors","BatteryLevel"))
-
+            print("MaxPower: {}, MaxEnergy: {}".format(maxPower, maxEnergy))
         try:
             unicornhathd.rotation(rotation)
             if sim==1:

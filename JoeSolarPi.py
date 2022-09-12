@@ -23,7 +23,7 @@ except ImportError:
 
 # get previous day's production and consumption
 def getYesterdayData():
-    debug_log("getYesterdayData")
+    debug_log("getYesterdayData", False)
     plotGetData()
     status = "ok"
     try:
@@ -34,8 +34,8 @@ def getYesterdayData():
         endTime = urllib.parse.quote_plus( yesterday.strftime("%Y-%m-%d")+" 23:59:59")
 
         dailyEnergyURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
-        debug_log(dailyEnergyURL)
-        day_data = requests.get(dailyEnergyURL, verify=False).json()
+        debug_log(dailyEnergyURL, False)
+        day_data = requests.get(dailyEnergyURL, verify=False, timeout = responseTimeout).json()
 
         global yesterdayConsump 
         global yesterdayProduction 
@@ -61,23 +61,16 @@ def getYesterdayData():
 
     except Exception as e:
         logger.error(e)
-        debug_log(e)
-        yesterdayConsump = 0
-        yesterdayProduction = 0
+        debug_log(e, True)
         status = "err"
 
-    debug_log("Yesterday Production: {} KWh".format(yesterdayProduction))
-    debug_log("Yesterday Consumption: {} KWh".format(yesterdayConsump))
-    debug_log(status)
-
-    print("Yesterday Production: {} KWh".format(yesterdayProduction))
-    print("Yesterday Consumption: {} KWh".format(yesterdayConsump))
-    if status != "ok":
-        print(status)
+    debug_log("Yesterday Production: {} KWh".format(yesterdayProduction), True)
+    debug_log("Yesterday Consumption: {} KWh".format(yesterdayConsump), True)
+    debug_log(status, True)
 
 # get current production and consumption
 def getSolarData():
-    debug_log("getSolarData")
+    debug_log("getSolarData", False)
     plotGetData()
 
     gridState = ("unknown")
@@ -89,18 +82,17 @@ def getSolarData():
         endTime = urllib.parse.quote_plus( date.today().strftime("%Y-%m-%d")+" 23:59:59")
 
         dailyEnergyURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
-        print("reading energy values...")
-        debug_log(dailyEnergyURL)
-        energy_data = requests.get(dailyEnergyURL, verify=False).json()
+        debug_log(dailyEnergyURL, False)
+        energy_data = requests.get(dailyEnergyURL, verify=False, timeout = responseTimeout).json()
 
-        debug_log(energy_data)
+        debug_log(energy_data, False)
 
         dayConsumption = 0
         dayProduction = 0
         dayUnit = energy_data["energyDetails"]["unit"]
-        debug_log("reading meters...")
+        debug_log("reading meters...", False)
         for meter in energy_data["energyDetails"]["meters"]:
-            debug_log(meter)
+            debug_log(meter, False)
             if meter["type"] == "Consumption":
                 try:
                     dayConsumption = meter["values"][0]["value"]
@@ -113,17 +105,17 @@ def getSolarData():
                     dayProduction = 0
 
         currentPowerURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/currentPowerFlow?api_key=' +api_key
-        debug_log(currentPowerURL)
-        power_data = requests.get(currentPowerURL, verify=False).json()
-        debug_log(power_data)
+        debug_log(currentPowerURL, False)
+        power_data = requests.get(currentPowerURL, verify=False, timeout = responseTimeout).json()
+        debug_log(power_data, False)
 
         #get units
         unit = power_data["siteCurrentPowerFlow"]["unit"]
 
         #determine meter states
-        debug_log("reading connections...")
+        debug_log("reading connections...", False)
         for conn in power_data["siteCurrentPowerFlow"]["connections"]:
-            debug_log(conn)
+            debug_log(conn, False)
             if conn["from"].lower()=="storage":
                 batteryState = "(discharging)"
                 batteryFlow = -1
@@ -139,31 +131,31 @@ def getSolarData():
             gridPower = power_data["siteCurrentPowerFlow"]["GRID"]["currentPower"]
         except:
             gridPower = 0
-            debug_log("gridPower read fail")
+            debug_log("gridPower read fail", True)
 
         try:
             loadPower = power_data["siteCurrentPowerFlow"]["LOAD"]["currentPower"]
         except:
             loadPower = 0
-            debug_log("loadPower read fail")
+            debug_log("loadPower read fail", True)
 
         try:    
             pvPower = power_data["siteCurrentPowerFlow"]["PV"]["currentPower"]
         except:
             pvPower = 0
-            debug_log("pvPower read fail")
+            debug_log("pvPower read fail", True)
 
         try:
             batteryPower = power_data["siteCurrentPowerFlow"]["STORAGE"]["currentPower"]
         except:
             batteryPower = 0
-            debug_log("batteryPower read fail")
+            debug_log("batteryPower read fail", True)
 
         try:
             batteryLevel = power_data["siteCurrentPowerFlow"]["STORAGE"]["chargeLevel"]
         except:
             batteryLevel = 0
-            debug_log("batteryLevel read fail")
+            debug_log("batteryLevel read fail", True)
 
     except Exception as e:
         loadPower = 0
@@ -178,27 +170,16 @@ def getSolarData():
         unit = "err"
         dayUnit = "err"
         logger.error(e)
-        debug_log(e)
+        debug_log(e, True)
 
-    print()
-    print(datetime.now())
-    print("Load: {} {}".format(loadPower, unit))
-    print("Grid Power: {} {} {}".format(gridPower,unit, gridState))
-    print("PV Power: {} {}".format(pvPower, unit))
-    print("Battery Power: {} {}".format(batteryFlow * batteryPower, unit))
-    print("Battery Level: {}% {}".format(batteryLevel,batteryState))
-    print("Consumption Today: {} {}".format(dayConsumption, dayUnit))
-    print("Production Today: {} {}".format(dayProduction, dayUnit))
-    print()
-
-    debug_log("getSolarData")
-    debug_log("Load: {} {}".format(loadPower, unit))
-    debug_log("Grid Power: {} {} {}".format(gridPower,unit, gridState))
-    debug_log("PV Power: {} {}".format(pvPower, unit))
-    debug_log("Battery Power: {} {}".format(batteryFlow * batteryPower, unit))
-    debug_log("Battery Level: {}% {}".format(batteryLevel,batteryState))
-    debug_log("Consumption Today: {} {}".format(dayConsumption, dayUnit))
-    debug_log("Production Today: {} {}".format(dayProduction, dayUnit))
+    debug_log("getSolarData", False)
+    debug_log("Load: {} {}".format(loadPower, unit), True)
+    debug_log("Grid Power: {} {} {}".format(gridPower,unit, gridState), True)
+    debug_log("PV Power: {} {}".format(pvPower, unit), True)
+    debug_log("Battery Power: {} {}".format(batteryFlow * batteryPower, unit), True)
+    debug_log("Battery Level: {}% {}".format(batteryLevel,batteryState), True)
+    debug_log("Consumption Today: {} {}".format(dayConsumption, dayUnit), True)
+    debug_log("Production Today: {} {}".format(dayProduction, dayUnit), True)
     
     if "(charging)" in batteryState:
         totalLoad = loadPower + batteryPower
@@ -211,7 +192,7 @@ def getSolarData():
 
 # plot current power production and consumption values
 def plotPower(load, pv, unit):
-    debug_log("plotPower")
+    debug_log("plotPower", False)
     try:
         if unit == "w":
             load = load / 1000
@@ -238,11 +219,11 @@ def plotPower(load, pv, unit):
         unicornhathd.show()
     except Exception as e:
         logger.error(e)
-        debug_log(e)
+        debug_log(e, True)
 
 # plot accumulated daily production and consumption totals
 def plotEnergy(consumption, production, unit):
-    debug_log("plotEnergy")
+    debug_log("plotEnergy", False)
     try:
         if unit == "Wh":
             consumption = consumption / 1000
@@ -279,11 +260,11 @@ def plotEnergy(consumption, production, unit):
         unicornhathd.show()
     except Exception as e:
         logger.error(e)
-        debug_log(e)
+        debug_log(e, True)
 
 # plot battery level and charge state
 def plotBattery(batteryState, power, level):
-    debug_log("plotBattery")
+    debug_log("plotBattery", False)
     try:
         cols = range(2)
         col_offset = powerCols + 2 * energyCols + 2
@@ -311,11 +292,11 @@ def plotBattery(batteryState, power, level):
         unicornhathd.show()
     except Exception as e:
         logger.error(e)
-        debug_log(e)
+        debug_log(e, True)
 
 # signal data retrieval
 def plotGetData():
-    debug_log("plotGetData")
+    debug_log("plotGetData", False)
     try:
         y = u_height-1
         for x in range(u_width):
@@ -326,7 +307,7 @@ def plotGetData():
             unicornhathd.set_pixel(x,y, 0,0,0)
     except Exception as e:
         logger.error(e)
-        debug_log(e)
+        debug_log(e, True)
 
 # combine rgb values of two colors with frac % of second color used.
 def AddColors(c1, c2, frac):
@@ -350,6 +331,8 @@ def ReadConfig():
             api_key = config["SolarEdge"]["api_key"]
             global site_id
             site_id = config["SolarEdge"]["site_id"]
+            global responseTimeout
+            responseTimeout = config["SolarEdge"].getint("responseTimeout")
             global refreshRate
             refreshRate = config["DisplaySettings"].getint("refreshRate")
             global powerCols
@@ -377,6 +360,7 @@ def ReadConfig():
             global clrBatteryLevel
             clrBatteryLevel = json.loads(config.get("Colors","BatteryLevel"))
             print("MaxPower: {}, MaxEnergy: {}".format(maxPower, maxEnergy))
+
         try:
             unicornhathd.rotation(rotation)
             if sim==1:
@@ -391,7 +375,9 @@ def ReadConfig():
     except Exception as e:
         logger.error(e)
 
-def debug_log(str):
+def debug_log(str, screen):
+    if screen:
+        print(str)
     if writedebug:
         debugfile.writelines("{}\n".format(str))
         debugfile.flush()
@@ -408,6 +394,8 @@ ReadConfig()
 
 powerList = [ [ [0,0,0] for y in range(u_height) ] for x in range(powerCols) ]
 yesterday = date.today()
+yesterdayProduction = 0
+yesterdayConsump = 0
 
 global writedebug 
 writedebug = True
@@ -420,7 +408,7 @@ try:
         if writedebug:
             if debugfile.closed == True:
                 debugfile = open('debug.txt','w')
-            debug_log("debug {}".format(datetime.now()))
+            debug_log("debug {}".format(datetime.now()), True)
 
         if (date.today() + timedelta(days = -1) != yesterday) or yesterdayConsump <= 0:
             getYesterdayData()

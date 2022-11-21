@@ -253,6 +253,10 @@ def plotEnergy(consumption, production, unit):
             update_config("maxEnergy",str(consumption * 1000))
             maxEnergy = consumption
 
+        if production > maxEnergy:
+            update_config("maxEnergy",str(production * 1000))
+            maxEnergy = production
+
         for y in rows:
             clrProd = AddColors([0,0,0], clrProdEnergy, prodY-y)    
             clrConsump = AddColors([0,0,0], clrConsumeEnergy, consumpY-y)

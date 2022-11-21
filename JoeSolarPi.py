@@ -193,6 +193,7 @@ def getSolarData():
 # plot current power production and consumption values
 def plotPower(load, pv, unit):
     debug_log("plotPower", False)
+    global maxPower
     try:
         if unit == "w":
             load = load / 1000
@@ -205,6 +206,14 @@ def plotPower(load, pv, unit):
         rows = range(u_height)
         loadY = load / maxPower * u_height
         pvY = pv / maxPower * u_height
+
+        #update maxPower
+        if pv > maxPower:
+            update_config("maxPower",str(pv * 1000))
+            maxPower = pv
+        if load > maxPower:
+            update_config("maxPower",str(load * 1000))
+            maxPower = load
 
         for y in rows:
             clr = [0,0,0]
@@ -224,6 +233,7 @@ def plotPower(load, pv, unit):
 # plot accumulated daily production and consumption totals
 def plotEnergy(consumption, production, unit):
     debug_log("plotEnergy", False)
+    global maxEnergy
     try:
         if unit == "Wh":
             consumption = consumption / 1000
@@ -237,6 +247,11 @@ def plotEnergy(consumption, production, unit):
 
         yesterdayConsumpY = round(yesterdayConsump / maxEnergy * u_height, 0)
         yesterdayProdY = round(yesterdayProduction / maxEnergy * u_height,0 )
+
+        #update maxEnergy
+        if consumption > maxEnergy:
+            update_config("maxEnergy",str(consumption * 1000))
+            maxEnergy = consumption
 
         for y in rows:
             clrProd = AddColors([0,0,0], clrProdEnergy, prodY-y)    
@@ -319,14 +334,15 @@ def AddColors(c1, c2, frac):
 
 # read config file - looks for "MySolarData.config" first, "SolarData.config" second
 def ReadConfig():
+    global configFilename
     try:
-        filename = "MyJoeSolarPi.config"
-        if not os.path.exists(filename):
-            filename = "JoeSolarPi.config"
-        if os.path.exists(filename):
-            print("Reading config from {}...".format(filename))
+        configFilename = "MyJoeSolarPi.config"
+        if not os.path.exists(configFilename):
+            configFilename = "JoeSolarPi.config"
+        if os.path.exists(configFilename):
+            print("Reading config from {}...".format(configFilename))
             config = configparser.ConfigParser()
-            config.read(filename)
+            config.read(configFilename)
             global api_key
             api_key = config["SolarEdge"]["api_key"]
             global site_id
@@ -346,9 +362,9 @@ def ReadConfig():
             global brightness
             brightness = config["DisplaySettings"].getfloat("brightness")
             global maxPower
-            maxPower = config["PVSettings"].getint("maxPower") / 1000
+            maxPower = config["PVSettings"].getfloat("maxPower") / 1000
             global maxEnergy
-            maxEnergy = config["PVSettings"].getint("maxEnergy") / 1000
+            maxEnergy = config["PVSettings"].getfloat("maxEnergy") / 1000
             global clrPV
             clrPV = json.loads(config.get("Colors","PVpower"))
             global clrLoad
@@ -381,6 +397,18 @@ def debug_log(str, screen):
     if writedebug:
         debugfile.writelines("{}\n".format(str))
         debugfile.flush()
+
+def update_config(key,value):
+    # Read config.ini file
+    edit = configparser.ConfigParser()
+    edit.read(configFilename)
+    #Get the pvsettings section
+    pvSettings = edit["PVSettings"]
+    #Update the value
+    pvSettings[key] = value
+    #Write changes back to file
+    with open(configFilename, 'w') as configfile:
+        edit.write(configfile)
 
 # *************************************** #
 #          begin main process

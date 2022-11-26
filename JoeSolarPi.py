@@ -127,6 +127,11 @@ def getSolarData():
             if conn["from"].lower()=="grid":
                 gridState="(buying)"
 
+        debug_log("flows",False)
+        for m in power_data["siteCurrentPowerFlow"]:
+            if m in ["GRID", "PV", "STORAGE", "LOAD"]:
+                debug_log("{}: {}".format(m,power_data["siteCurrentPowerFlow"][m]), False)
+
         try:
             gridPower = power_data["siteCurrentPowerFlow"]["GRID"]["currentPower"]
         except:

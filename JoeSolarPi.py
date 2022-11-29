@@ -9,6 +9,9 @@ import copy
 import configparser
 import os.path
 import logging
+import dropbox
+from dropbox.exceptions import AuthError
+import pathlib
 
 #use the unicornhathd simulator if not running on pi with UnicornHatHD installed
 #
@@ -185,7 +188,8 @@ def getSolarData():
     debug_log("Battery Level: {}% {}".format(batteryLevel,batteryState), True)
     debug_log("Consumption Today: {} {}".format(dayConsumption, dayUnit), True)
     debug_log("Production Today: {} {}".format(dayProduction, dayUnit), True)
-    
+    save_data(loadPower, gridPower, pvPower, batteryFlow * batteryPower)
+
     if "(charging)" in batteryState:
         totalLoad = loadPower + batteryPower
     else:
@@ -385,6 +389,8 @@ def ReadConfig():
             global clrBatteryLevel
             clrBatteryLevel = json.loads(config.get("Colors","BatteryLevel"))
             print("MaxPower: {}, MaxEnergy: {}".format(maxPower, maxEnergy))
+            global DROPBOX_ACCESS_TOKEN
+            DROPBOX_ACCESS_TOKEN = config["Dropbox"]["token"]
 
         try:
             unicornhathd.rotation(rotation)
@@ -418,6 +424,98 @@ def update_config(key,value):
     #Write changes back to file
     with open(configFilename, 'w') as configfile:
         edit.write(configfile)
+
+def save_data(load, grid, pv, battery):
+    # check if we need a new file
+    dataFileName = "{}_data.csv".format(date.today().strftime("%Y%m%d"))
+    header=""
+    if not os.path.exists(dataFileName):
+        header = "DateAndTime,Load,Grid,PV,Battery\n"
+
+    dataFile = open(dataFileName,"a")
+    if header != "":
+        dataFile.writelines(header)
+    L = "\"{}\",{},{},{},{}\n".format(datetime.now(),load,grid,pv,battery)
+    dataFile.writelines(L)
+    dataFile.close()
+    #upload to dropbox
+    dropbox_upload_file(".", dataFileName, "/{}".format(dataFileName))
+
+
+# Dropbox Stuff
+def dropbox_connect():
+    """Create a connection to Dropbox."""
+
+    try:
+        dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
+    except AuthError as e:
+        print('Error connecting to Dropbox with access token: ' + str(e))
+    return dbx
+
+def dropbox_list_files(path):
+    """Return a Pandas dataframe of files in a given Dropbox folder path in the Apps directory.
+    """
+
+    dbx = dropbox_connect()
+
+    try:
+        files = dbx.files_list_folder(path).entries
+        files_list = []
+        for file in files:
+            if isinstance(file, dropbox.files.FileMetadata):
+                metadata = {
+                    'name': file.name,
+                    'path_display': file.path_display,
+                    'client_modified': file.client_modified,
+                    'server_modified': file.server_modified
+                }
+                files_list.append(metadata)
+
+        df = pd.DataFrame.from_records(files_list)
+        return df.sort_values(by='server_modified', ascending=False)
+
+    except Exception as e:
+        print('Error getting list of files from Dropbox: ' + str(e))
+
+def dropbox_download_file(dropbox_file_path, local_file_path):
+    """Download a file from Dropbox to the local machine."""
+
+    try:
+        dbx = dropbox_connect()
+
+        with open(local_file_path, 'wb') as f:
+            metadata, result = dbx.files_download(path=dropbox_file_path)
+            f.write(result.content)
+    except Exception as e:
+        print('Error downloading file from Dropbox: ' + str(e))    
+
+def dropbox_upload_file(local_path, local_file, dropbox_file_path):
+    """Upload a file from the local machine to a path in the Dropbox app directory.
+
+    Args:
+        local_path (str): The path to the local file.
+        local_file (str): The name of the local file.
+        dropbox_file_path (str): The path to the file in the Dropbox app directory.
+
+    Example:
+        dropbox_upload_file('.', 'test.csv', '/stuff/test.csv')
+
+    Returns:
+        meta: The Dropbox file metadata.
+    """
+
+    try:
+        debug_log("Upload data to dropbox...", False)
+        dbx = dropbox_connect()
+
+        local_file_path = pathlib.Path(local_path) / local_file
+
+        with local_file_path.open("rb") as f:
+            meta = dbx.files_upload(f.read(), dropbox_file_path, mode=dropbox.files.WriteMode("overwrite"))
+
+            return meta
+    except Exception as e:
+        logger.error(e)
 
 # *************************************** #
 #          begin main process

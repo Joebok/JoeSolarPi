@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PV Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
+    <script src="date.format.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.1.slim.min.js"
+        integrity="sha256-w8CvhFs7iHNVUtnSP0YKEg00p9Ih13rlL9zGqvLdePA=" crossorigin="anonymous"></script>
+    <meta http-equiv="refresh" content="120">
+</head>
+
+<style>
+    .clrGrid {
+        background-color: red;
+    }
+
+    .clrPV {
+        background-color: green;
+    }
+
+    .clrBatt {
+        background-color: blue;
+        color: white;
+    }
+</style>
+
+<body>
+    <div class="w-75 h-75">
+    <canvas id="chart"></canvas>
+    <div class="row fw-bold">
+        <div class="col-1 text-end offset-3 clrGrid">GRID:</div>
+        <div class="col-1 text-start clrGrid" id="currentGrid"></div>
+        <div class="col-1 text-end clrPV">PV:</div>
+        <div class="col-1 text-start clrPV" id="currentPV"></div>
+        <div class="col-1 text-end clrBatt">Battery:</div>
+        <div class="col-1 text-start clrBatt" id="currentBattery"></div>
+    </div>
+</div>
+    <script>
+
+        d3.csv('https://dl.dropboxusercontent.com/s/u6fyomqk0fj9ocs/20221129_data.csv?dl=1', d3.autoType)
+            .then(makeChart);
+
+        function makeChart(solarData) {
+            filteredData = solarData.filter(function (d) { return (dateFormat(d.DateAndTime, "HH:MM") >= "07:00") && (dateFormat(d.DateAndTime, "HH:MM") <= "17:00")  })
+            var timeLabels = filteredData.map(function (d) { return d.DateAndTime });
+            var loadData = filteredData.map(function (d) { return d.Load });
+            var gridData = filteredData.map(function (d) { return d.Grid });
+            var pvData = filteredData.map(function (d) { return d.PV });
+            var batteryData = filteredData.map(function (d) { return d.Battery });
+
+            $('#currentGrid').text(gridData[gridData.length - 1])
+            $('#currentPV').text(pvData[pvData.length - 1])
+            $('#currentBattery').text(batteryData[batteryData.length - 1])
+
+            var chart = new Chart('chart', {
+                type: 'bar',
+                data: {
+                    labels: timeLabels,
+                    datasets: [
+                        {
+                            label: 'PV',
+                            data: pvData,
+                            backgroundColor: "#00FF00",
+                        },
+                        {
+                            label: 'Battery',
+                            data: batteryData,
+                            backgroundColor: "#0000FF",
+                        },
+                        {
+                            label: 'Grid',
+                            data: gridData,
+                            backgroundColor: "#FF0000",
+                        },
+                    ]
+                },
+                options: {
+                    scales: {
+                        xAxes: [{
+                            stacked: true,
+                            ticks: {
+                                callback: function (value, index, values) {
+                                    return dateFormat(value, "HH:MM");
+                                }
+                            }
+                        }],
+                        yAxes: [{
+                            stacked: true,
+                        }],
+                    }
+                }
+            });
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>

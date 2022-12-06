@@ -386,6 +386,12 @@ def ReadConfig():
             global clrBatteryLevel
             clrBatteryLevel = json.loads(config.get("Colors","BatteryLevel"))
             print("MaxPower: {}, MaxEnergy: {}".format(maxPower, maxEnergy))
+            global storeData 
+            strStoreData = config["Web"]["storedata"]
+            if strStoreData.lower() == "yes":
+                storeData = True
+            else:
+                storeData = False
             global webPath
             webPath = config["Web"]["webpath"]
 
@@ -423,23 +429,24 @@ def update_config(key,value):
         edit.write(configfile)
 
 def save_data(load, grid, pv, battery):
-    try:
-        # check if we need a new file
-        global webPath
-        dataFileName = "{}{}_data.csv".format(webPath,date.today().strftime("%Y%m%d"))
-        header=""
-        if not os.path.exists(dataFileName):
-            header = "DateAndTime,Load,Grid,PV,Battery\n"
+    if storeData:
+        try:
+            # check if we need a new file
+            global webPath
+            dataFileName = "{}{}_data.csv".format(webPath,date.today().strftime("%Y%m%d"))
+            header=""
+            if not os.path.exists(dataFileName):
+                header = "DateAndTime,Load,Grid,PV,Battery\n"
 
-        dataFile = open(dataFileName,"a")
-        if header != "":
-            dataFile.writelines(header)
-        L = "\"{}\",{},{},{},{}\n".format(datetime.now(),load,grid,pv,battery)
-        if (load is not None) and (grid is not None) and (pv is not None) and (battery is not None):
-            dataFile.writelines(L)
-        dataFile.close()
-    except Exception as e:
-        logger.error(e)
+            dataFile = open(dataFileName,"a")
+            if header != "":
+                dataFile.writelines(header)
+            L = "\"{}\",{},{},{},{}\n".format(datetime.now(),load,grid,pv,battery)
+            if (load is not None) and (grid is not None) and (pv is not None) and (battery is not None):
+                dataFile.writelines(L)
+            dataFile.close()
+        except Exception as e:
+            logger.error(e)
 
 # *************************************** #
 #          begin main process

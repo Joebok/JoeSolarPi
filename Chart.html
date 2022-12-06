@@ -30,34 +30,110 @@
     }
 </style>
 
-<body>
-    <div class="w-75 h-75">
-    <canvas id="chart"></canvas>
-    <div class="row fw-bold">
-        <div class="col-1 text-end offset-3 clrGrid">GRID:</div>
-        <div class="col-1 text-start clrGrid" id="currentGrid"></div>
-        <div class="col-1 text-end clrPV">PV:</div>
-        <div class="col-1 text-start clrPV" id="currentPV"></div>
-        <div class="col-1 text-end clrBatt">Battery:</div>
-        <div class="col-1 text-start clrBatt" id="currentBattery"></div>
+<body class="h-100 w-100">
+    <div class="w-75 ">
+        <div class="text-center">
+            <button type="button" class="btn btn-light" id="btnDayBefore" onclick="changeDay(-1)">&lt;</button>
+            <div class="fw-bold d-inline-block" id="currentDate">Center</div>
+            <button type="button" class="btn btn-light" id="btnDayAfter" onclick="changeDay(1)">&gt;</button>
+            <button type="button" class="btn btn-light" id="btnNow" onclick="changeDay(0)">&gt;|</button>
+        </div>
+        <canvas id="chart"></canvas>
+        <div class="row fw-bold">
+            <div class="col-4 text-center offset-4" id="currentTime"></div>
+        </div>
+        <div class="row">
+            <div class="col-2 text-end clrGrid offset-4">GRID:</div>
+            <div class="col-2 text-start clrGrid" id="currentGrid"></div>
+        </div>
+        <div class="row">
+            <div class="col-2 text-end clrPV offset-4">PV:</div>
+            <div class="col-2 text-start clrPV" id="currentPV"></div>
+        </div>
+        <div class="row">
+            <div class="col-2 text-end clrBatt offset-4">Battery:</div>
+            <div class="col-2 text-start clrBatt" id="currentBattery"></div>
+        </div>
+        <div class="row">
+            <div class="col-2 text-end  offset-4">Load:</div>
+            <div class="col-2 text-start " id="currentLoad"></div>
+        </div>
     </div>
-</div>
     <script>
 
-        d3.csv('https://dl.dropboxusercontent.com/s/u6fyomqk0fj9ocs/20221129_data.csv?dl=1', d3.autoType)
+        function changeDay(i) {
+            if (i != 0) {
+                newDate = addDays(reqDate, i);
+                var params = ["date=" + GetDateStringPage(newDate)]
+                window.location.href = 'http://' + window.location.host + window.location.pathname + '?' + params.join('&')
+            } else {
+                window.location.href = 'http://' + window.location.host + window.location.pathname
+            }
+        }
+
+        function addDays(date, days) {
+            var result = new Date(date);
+            result.setDate(result.getDate() + days);
+            console.log(date);
+            console.log(result);
+            return result;
+        }
+
+        function getUrlVars() {
+            var vars = [], hash;
+            var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+            for (var i = 0; i < hashes.length; i++) {
+                hash = hashes[i].split('=');
+                vars.push(hash[0]);
+                vars[hash[0]] = hash[1];
+            }
+            return vars;
+        }
+
+        function GetDateStringPage(d) {
+            var str = d.getUTCFullYear().toString() + '-' + (d.getUTCMonth() + 1).toString() + '-' + ('00' + d.getUTCDate().toString()).slice(-2);
+            return str;
+        }
+
+        function GetDateStringFile(d) {
+            var str = d.getUTCFullYear().toString() + (d.getUTCMonth() + 1).toString() + ('00' + d.getUTCDate().toString()).slice(-2);
+            return str;
+        }
+
+        var strDate = getUrlVars()["date"]
+        var reqDate = new Date()
+        if (strDate == null || reqDate == "") {
+        } else {
+            var dateParts = strDate.split('-');
+            reqDate = new Date(strDate + 'T00:00:00Z');
+        }
+
+        var URLDate = GetDateStringFile(reqDate)
+        var todayURL = 'data/' + URLDate + '_data.csv';
+
+        d3.csv(todayURL, d3.autoType)
             .then(makeChart);
 
         function makeChart(solarData) {
-            filteredData = solarData.filter(function (d) { return (dateFormat(d.DateAndTime, "HH:MM") >= "07:00") && (dateFormat(d.DateAndTime, "HH:MM") <= "17:00")  })
+            filteredData = solarData.filter(function (d) { return (dateFormat(d.DateAndTime, "HH:MM") >= "06:30") && (dateFormat(d.DateAndTime, "HH:MM") <= "18:00") })
             var timeLabels = filteredData.map(function (d) { return d.DateAndTime });
             var loadData = filteredData.map(function (d) { return d.Load });
             var gridData = filteredData.map(function (d) { return d.Grid });
             var pvData = filteredData.map(function (d) { return d.PV });
-            var batteryData = filteredData.map(function (d) { return d.Battery });
+            var batteryDischargeData = filteredData.map(function (d) { return -1.0 * Math.min(0, d.Battery) });
 
-            $('#currentGrid').text(gridData[gridData.length - 1])
-            $('#currentPV').text(pvData[pvData.length - 1])
-            $('#currentBattery').text(batteryData[batteryData.length - 1])
+            var SelfComsumpData = filteredData.map(function (d) { return Math.min(d.PV, d.Load) })
+            var ExportPV = filteredData.map(function (d) { return Math.max(d.PV - d.Load - Math.max(0, d.Battery), 0) })
+            var batteryCharge = filteredData.map(function (d) { if (d.Battery > 0) { return d.Battery } else { return 0.0 } });
+            var ImportGrid = filteredData.map(function (d) { return Math.max(d.Load - d.PV + Math.min(0, d.Battery), 0) })
+
+            var lastRow = solarData[solarData.length - 1]
+            $('#currentDate').text(dateFormat(lastRow.DateAndTime, "mm/dd/yyyy"))
+            $('#currentTime').text(dateFormat(lastRow.DateAndTime, "mm/dd HH:MM"))
+            $('#currentGrid').text(lastRow.Grid)
+            $('#currentPV').text(lastRow.PV)
+            $('#currentBattery').text(lastRow.Battery)
+            $('#currentLoad').text(lastRow.Load)
 
             var chart = new Chart('chart', {
                 type: 'bar',
@@ -65,19 +141,29 @@
                     labels: timeLabels,
                     datasets: [
                         {
-                            label: 'PV',
-                            data: pvData,
-                            backgroundColor: "#00FF00",
+                            label: 'Self-Consumption',
+                            data: SelfComsumpData,
+                            backgroundColor: "#77DD00",
                         },
                         {
-                            label: 'Battery',
-                            data: batteryData,
-                            backgroundColor: "#0000FF",
+                            label: 'Battery Discharge',
+                            data: batteryDischargeData,
+                            backgroundColor: "#FF00DD",
                         },
                         {
-                            label: 'Grid',
-                            data: gridData,
+                            label: 'Battery Charge',
+                            data: batteryCharge,
+                            backgroundColor: "#0055FF",
+                        },
+                        {
+                            label: 'Import',
+                            data: ImportGrid,
                             backgroundColor: "#FF0000",
+                        },
+                        {
+                            label: 'Export',
+                            data: ExportPV,
+                            backgroundColor: "#00FF00",
                         },
                     ]
                 },

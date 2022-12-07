@@ -12,7 +12,14 @@
     <script src="date.format.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.1.slim.min.js"
         integrity="sha256-w8CvhFs7iHNVUtnSP0YKEg00p9Ih13rlL9zGqvLdePA=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
     <meta http-equiv="refresh" content="120">
+
+    <script>
+        $(document).ready(function () {
+
+        })
+    </script>
 </head>
 
 <style>
@@ -31,164 +38,212 @@
 </style>
 
 <body class="h-100 w-100">
-    <div class="w-75 ">
-        <div class="text-center">
-            <button type="button" class="btn btn-light" id="btnDayBefore" onclick="changeDay(-1)">&lt;</button>
-            <div class="fw-bold d-inline-block" id="currentDate">Center</div>
-            <button type="button" class="btn btn-light" id="btnDayAfter" onclick="changeDay(1)">&gt;</button>
-            <button type="button" class="btn btn-light" id="btnNow" onclick="changeDay(0)">&gt;|</button>
+    <form id="mainForm">
+
+        <div class="w-75 ">
+            <div class="text-center">
+                <select id="sStartTime" onchange="$.cookie('StartTime',$(this).val());$('#mainForm').submit()">
+                    <option value="00:00">00:00 am</option>
+                    <option value="01:00">01:00 am</option>
+                    <option value="02:00">02:00 am</option>
+                    <option value="03:00">03:00 am</option>
+                    <option value="04:00">04:00 am</option>
+                    <option value="05:00">05:00 am</option>
+                    <option value="06:00">06:00 am</option>
+                    <option value="07:00">07:00 am</option>
+                    <option value="08:00">08:00 am</option>
+                    <option value="09:00">09:00 am</option>
+                    <option value="10:00">10:00 am</option>
+                </select>
+                <button type="button" class="btn btn-light" id="btnDayBefore" onclick="changeDay(-1)">&lt;</button>
+                <div class="fw-bold d-inline-block" id="currentDate">Center</div>
+                <button type="button" class="btn btn-light" id="btnDayAfter" onclick="changeDay(1)">&gt;</button>
+                <button type="button" class="btn btn-light" id="btnNow" onclick="changeDay(0)">&gt;|</button>
+                <select id="sEndTime" onchange="$.cookie('EndTime',$(this).val());$('#mainForm').submit()">
+                    <option value="17:00">05:00 pm</option>
+                    <option value="18:00">06:00 pm</option>
+                    <option value="19:00">07:00 pm</option>
+                    <option value="20:00">08:00 pm</option>
+                    <option value="21:00">09:00 pm</option>
+                    <option value="22:00">10:00 pm</option>
+                    <option value="23:00">11:00 pm</option>
+                    <option value="24:00">12:00 pm</option>
+                </select>
+            </div>
+            <canvas id="chart"></canvas>
+            <div class="row fw-bold">
+                <div class="col-4 text-center offset-4" id="currentTime"></div>
+            </div>
+            <div class="row">
+                <div class="col-2 text-end clrGrid offset-4">GRID:</div>
+                <div class="col-2 text-start clrGrid" id="currentGrid"></div>
+            </div>
+            <div class="row">
+                <div class="col-2 text-end clrPV offset-4">PV:</div>
+                <div class="col-2 text-start clrPV" id="currentPV"></div>
+            </div>
+            <div class="row">
+                <div class="col-2 text-end clrBatt offset-4">Battery:</div>
+                <div class="col-2 text-start clrBatt" id="currentBattery"></div>
+            </div>
+            <div class="row">
+                <div class="col-2 text-end  offset-4">Load:</div>
+                <div class="col-2 text-start " id="currentLoad"></div>
+            </div>
         </div>
-        <canvas id="chart"></canvas>
-        <div class="row fw-bold">
-            <div class="col-4 text-center offset-4" id="currentTime"></div>
-        </div>
-        <div class="row">
-            <div class="col-2 text-end clrGrid offset-4">GRID:</div>
-            <div class="col-2 text-start clrGrid" id="currentGrid"></div>
-        </div>
-        <div class="row">
-            <div class="col-2 text-end clrPV offset-4">PV:</div>
-            <div class="col-2 text-start clrPV" id="currentPV"></div>
-        </div>
-        <div class="row">
-            <div class="col-2 text-end clrBatt offset-4">Battery:</div>
-            <div class="col-2 text-start clrBatt" id="currentBattery"></div>
-        </div>
-        <div class="row">
-            <div class="col-2 text-end  offset-4">Load:</div>
-            <div class="col-2 text-start " id="currentLoad"></div>
-        </div>
-    </div>
-    <script>
+        <script>
 
-        function changeDay(i) {
-            if (i != 0) {
-                newDate = addDays(reqDate, i);
-                var params = ["date=" + GetDateStringPage(newDate)]
-                window.location.href = 'http://' + window.location.host + window.location.pathname + '?' + params.join('&')
-            } else {
-                window.location.href = 'http://' + window.location.host + window.location.pathname
-            }
-        }
-
-        function addDays(date, days) {
-            var result = new Date(date);
-            result.setDate(result.getDate() + days);
-            console.log(date);
-            console.log(result);
-            return result;
-        }
-
-        function getUrlVars() {
-            var vars = [], hash;
-            var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-            for (var i = 0; i < hashes.length; i++) {
-                hash = hashes[i].split('=');
-                vars.push(hash[0]);
-                vars[hash[0]] = hash[1];
-            }
-            return vars;
-        }
-
-        function GetDateStringPage(d) {
-            var str = d.getUTCFullYear().toString() + '-' + (d.getUTCMonth() + 1).toString() + '-' + ('00' + d.getUTCDate().toString()).slice(-2);
-            return str;
-        }
-
-        function GetDateStringFile(d) {
-            var str = d.getUTCFullYear().toString() + (d.getUTCMonth() + 1).toString() + ('00' + d.getUTCDate().toString()).slice(-2);
-            return str;
-        }
-
-        var strDate = getUrlVars()["date"]
-        var reqDate = new Date()
-        if (strDate == null || reqDate == "") {
-        } else {
-            var dateParts = strDate.split('-');
-            reqDate = new Date(strDate + 'T00:00:00Z');
-        }
-
-        var URLDate = GetDateStringFile(reqDate)
-        var todayURL = 'data/' + URLDate + '_data.csv';
-
-        d3.csv(todayURL, d3.autoType)
-            .then(makeChart);
-
-        function makeChart(solarData) {
-            filteredData = solarData.filter(function (d) { return (dateFormat(d.DateAndTime, "HH:MM") >= "06:30") && (dateFormat(d.DateAndTime, "HH:MM") <= "18:00") })
-            var timeLabels = filteredData.map(function (d) { return d.DateAndTime });
-            var loadData = filteredData.map(function (d) { return d.Load });
-            var gridData = filteredData.map(function (d) { return d.Grid });
-            var pvData = filteredData.map(function (d) { return d.PV });
-            var batteryDischargeData = filteredData.map(function (d) { return -1.0 * Math.min(0, d.Battery) });
-
-            var SelfComsumpData = filteredData.map(function (d) { return Math.min(d.PV, d.Load) })
-            var ExportPV = filteredData.map(function (d) { return Math.max(d.PV - d.Load - Math.max(0, d.Battery), 0) })
-            var batteryCharge = filteredData.map(function (d) { if (d.Battery > 0) { return d.Battery } else { return 0.0 } });
-            var ImportGrid = filteredData.map(function (d) { return Math.max(d.Load - d.PV + Math.min(0, d.Battery), 0) })
-
-            var lastRow = solarData[solarData.length - 1]
-            $('#currentDate').text(dateFormat(lastRow.DateAndTime, "mm/dd/yyyy"))
-            $('#currentTime').text(dateFormat(lastRow.DateAndTime, "mm/dd HH:MM"))
-            $('#currentGrid').text(lastRow.Grid)
-            $('#currentPV').text(lastRow.PV)
-            $('#currentBattery').text(lastRow.Battery)
-            $('#currentLoad').text(lastRow.Load)
-
-            var chart = new Chart('chart', {
-                type: 'bar',
-                data: {
-                    labels: timeLabels,
-                    datasets: [
-                        {
-                            label: 'Self-Consumption',
-                            data: SelfComsumpData,
-                            backgroundColor: "#77DD00",
-                        },
-                        {
-                            label: 'Battery Discharge',
-                            data: batteryDischargeData,
-                            backgroundColor: "#FF00DD",
-                        },
-                        {
-                            label: 'Battery Charge',
-                            data: batteryCharge,
-                            backgroundColor: "#0055FF",
-                        },
-                        {
-                            label: 'Import',
-                            data: ImportGrid,
-                            backgroundColor: "#FF0000",
-                        },
-                        {
-                            label: 'Export',
-                            data: ExportPV,
-                            backgroundColor: "#00FF00",
-                        },
-                    ]
-                },
-                options: {
-                    scales: {
-                        xAxes: [{
-                            stacked: true,
-                            ticks: {
-                                callback: function (value, index, values) {
-                                    return dateFormat(value, "HH:MM");
-                                }
-                            }
-                        }],
-                        yAxes: [{
-                            stacked: true,
-                        }],
-                    }
+            function changeDay(i) {
+                if (i != 0) {
+                    newDate = addDays(reqDate, i);
+                    $.cookie("date", GetDateStringPage(newDate))
+                } else {
+                    $.removeCookie("date", { path: '/' })
                 }
-            });
-        }
-    </script>
+                $('#mainForm').submit()
+            }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
-        crossorigin="anonymous"></script>
+            function addDays(date, days) {
+                var result = new Date(date);
+                result.setDate(result.getDate() + days);
+                console.log(date);
+                console.log(result);
+                return result;
+            }
+
+            function getUrlVars() {
+                var vars = [], hash;
+                var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+                for (var i = 0; i < hashes.length; i++) {
+                    hash = hashes[i].split('=');
+                    vars.push(hash[0]);
+                    vars[hash[0]] = hash[1];
+                }
+                return vars;
+            }
+
+            function GetDateStringPage(d) {
+                var str = d.getUTCFullYear().toString() + '-' + (d.getUTCMonth() + 1).toString() + '-' + ('00' + d.getUTCDate().toString()).slice(-2);
+                return str;
+            }
+
+            function GetDateStringFile(d) {
+                var str = d.getUTCFullYear().toString() + (d.getUTCMonth() + 1).toString() + ('00' + d.getUTCDate().toString()).slice(-2);
+                return str;
+            }
+
+            var strDate
+
+            if (isPostBack()) {
+                strDate = $.cookie("date");
+            }
+
+            var reqDate = new Date()
+            if (strDate == null || reqDate == "") {
+            } else {
+                var dateParts = strDate.split('-');
+                reqDate = new Date(strDate + 'T00:00:00Z');
+            }
+
+            var URLDate = GetDateStringFile(reqDate)
+            var todayURL = 'data/' + URLDate + '_data.csv';
+            var StartTime = $.cookie("StartTime");
+            if (StartTime === undefined) {
+                StartTime = "07:00";
+            }
+            $('#sStartTime').val(StartTime);
+            var EndTime = $.cookie("EndTime");
+            if (EndTime === undefined) {
+                EndTime = "17:00";
+            }
+            $('#sEndTime').val(EndTime);
+
+            d3.csv(todayURL, d3.autoType)
+                .then(makeChart);
+
+            function makeChart(solarData) {
+                filteredData = solarData.filter(function (d) { return (dateFormat(d.DateAndTime, "HH:MM") >= StartTime) && (dateFormat(d.DateAndTime, "HH:MM") <= EndTime) })
+                var timeLabels = filteredData.map(function (d) { return d.DateAndTime });
+                var loadData = filteredData.map(function (d) { return d.Load });
+                var gridData = filteredData.map(function (d) { return d.Grid });
+                var pvData = filteredData.map(function (d) { return d.PV });
+                var batteryDischargeData = filteredData.map(function (d) { return -1.0 * Math.min(0, d.Battery) });
+
+                var SelfComsumpData = filteredData.map(function (d) { return Math.min(d.PV, d.Load) })
+                var ExportPV = filteredData.map(function (d) { return Math.max(d.PV - d.Load - Math.max(0, d.Battery), 0) })
+                var batteryCharge = filteredData.map(function (d) { if (d.Battery > 0) { return d.Battery } else { return 0.0 } });
+                var ImportGrid = filteredData.map(function (d) { return Math.max(d.Load - d.PV + Math.min(0, d.Battery), 0) })
+
+                var lastRow = solarData[solarData.length - 1]
+                $('#currentDate').text(dateFormat(lastRow.DateAndTime, "mm/dd/yyyy"))
+                $('#currentTime').text(dateFormat(lastRow.DateAndTime, "mm/dd HH:MM"))
+                $('#currentGrid').text(lastRow.Grid)
+                $('#currentPV').text(lastRow.PV)
+                $('#currentBattery').text(lastRow.Battery)
+                $('#currentLoad').text(lastRow.Load)
+
+                var chart = new Chart('chart', {
+                    type: 'bar',
+                    data: {
+                        labels: timeLabels,
+                        datasets: [
+                            {
+                                label: 'Self-Consumption',
+                                data: SelfComsumpData,
+                                backgroundColor: "#77DD00",
+                            },
+                            {
+                                label: 'Battery Discharge',
+                                data: batteryDischargeData,
+                                backgroundColor: "#FF00DD",
+                            },
+                            {
+                                label: 'Battery Charge',
+                                data: batteryCharge,
+                                backgroundColor: "#0055FF",
+                            },
+                            {
+                                label: 'Import',
+                                data: ImportGrid,
+                                backgroundColor: "#FF0000",
+                            },
+                            {
+                                label: 'Export',
+                                data: ExportPV,
+                                backgroundColor: "#00FF00",
+                            },
+                        ]
+                    },
+                    options: {
+                        tooltips: {
+                            // Overrides the global setting
+                            mode: 'label'
+                        },
+                        scales: {
+                            xAxes: [{
+                                stacked: true,
+                                ticks: {
+                                    callback: function (value, index, values) {
+                                        return dateFormat(value, "HH:MM");
+                                    }
+                                }
+                            }],
+                            yAxes: [{
+                                stacked: true,
+                            }],
+                        }
+                    }
+                });
+            }
+            function isPostBack() {
+
+                return document.referrer.indexOf(document.location.href) > -1;
+            }        </script>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
+            crossorigin="anonymous"></script>
+    </form>
 </body>
 
 </html>

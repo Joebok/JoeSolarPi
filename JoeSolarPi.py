@@ -185,7 +185,7 @@ def getSolarData():
     debug_log("Battery Level: {}% {}".format(batteryLevel,batteryState), True)
     debug_log("Consumption Today: {} {}".format(dayConsumption, dayUnit), True)
     debug_log("Production Today: {} {}".format(dayProduction, dayUnit), True)
-    save_data(loadPower, gridPower, pvPower, batteryFlow * batteryPower)
+    save_data(loadPower, gridPower, pvPower, batteryFlow * batteryPower,dayProduction, dayConsumption)
 
     if "(charging)" in batteryState:
         totalLoad = loadPower + batteryPower
@@ -428,7 +428,7 @@ def update_config(key,value):
     with open(configFilename, 'w') as configfile:
         edit.write(configfile)
 
-def save_data(load, grid, pv, battery):
+def save_data(load, grid, pv, battery, totalProd, totalImport):
     if storeData:
         try:
             # check if we need a new file
@@ -436,12 +436,12 @@ def save_data(load, grid, pv, battery):
             dataFileName = "{}{}_data.csv".format(webPath,date.today().strftime("%Y%m%d"))
             header=""
             if not os.path.exists(dataFileName):
-                header = "DateAndTime,Load,Grid,PV,Battery\n"
+                header = "DateAndTime,Load,Grid,PV,Battery,TotProd,TotImport\n"
 
             dataFile = open(dataFileName,"a")
             if header != "":
                 dataFile.writelines(header)
-            L = "\"{}\",{},{},{},{}\n".format(datetime.now(),load,grid,pv,battery)
+            L = "\"{}\",{},{},{},{},{},{}\n".format(datetime.now(),load,grid,pv,battery,totalProd,totalImport)
             if (load is not None) and (grid is not None) and (pv is not None) and (battery is not None):
                 dataFile.writelines(L)
             dataFile.close()

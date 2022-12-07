@@ -17,30 +17,44 @@
 
     <script>
         $(document).ready(function () {
-
+            $(document).on('keydown', function (e) {
+                if (e.which === 37) {
+                    changeDay(-1);
+                } else if (e.which === 39) {
+                    changeDay(1);
+                }
+            });
         })
     </script>
 </head>
 
 <style>
     .clrGrid {
-        background-color: red;
+        background-color: #FF0000;
+        font-weight: bold;
     }
 
     .clrPV {
-        background-color: green;
+        background-color: #00FF00;
+        font-weight: bold;
     }
 
     .clrBatt {
-        background-color: blue;
+        background-color: #0000FF;
+        font-weight: bold;
         color: white;
+    }
+
+    .clrLoad {
+        background-color: #AAAAAA;
+        font-weight: bold;
     }
 </style>
 
-<body class="h-100 w-100">
+<body>
     <form id="mainForm">
 
-        <div class="w-75 ">
+        <div>
             <div class="text-center">
                 <select id="sStartTime" onchange="$.cookie('StartTime',$(this).val());$('#mainForm').submit()">
                     <option value="00:00">00:00 am</option>
@@ -55,10 +69,11 @@
                     <option value="09:00">09:00 am</option>
                     <option value="10:00">10:00 am</option>
                 </select>
-                <button type="button" class="btn btn-light" id="btnDayBefore" onclick="changeDay(-1)">&lt;</button>
+                <button type="button" class="btn btn-light btn-sm" id="btnDayBefore"
+                    onclick="changeDay(-1)">&lt;</button>
                 <div class="fw-bold d-inline-block" id="currentDate">Center</div>
-                <button type="button" class="btn btn-light" id="btnDayAfter" onclick="changeDay(1)">&gt;</button>
-                <button type="button" class="btn btn-light" id="btnNow" onclick="changeDay(0)">&gt;|</button>
+                <button type="button" class="btn btn-light btn-sm" id="btnDayAfter" onclick="changeDay(1)">&gt;</button>
+                <button type="button" class="btn btn-light btn-sm" id="btnNow" onclick="changeDay(0)">&gt;|</button>
                 <select id="sEndTime" onchange="$.cookie('EndTime',$(this).val());$('#mainForm').submit()">
                     <option value="17:00">05:00 pm</option>
                     <option value="18:00">06:00 pm</option>
@@ -70,25 +85,31 @@
                     <option value="24:00">12:00 pm</option>
                 </select>
             </div>
-            <canvas id="chart"></canvas>
+            <div class="chart-container" style="position: relative; height:80vh; width:100vw">
+                <canvas id="chart"></canvas>
+            </div>
             <div class="row fw-bold">
-                <div class="col-4 text-center offset-4" id="currentTime"></div>
+                <div class="col-md-3 col-8 text-center offset-md-4" id="currentTime"></div>
             </div>
             <div class="row">
-                <div class="col-2 text-end clrGrid offset-4">GRID:</div>
-                <div class="col-2 text-start clrGrid" id="currentGrid"></div>
+                <div class="col-md-1 col-2 offset-2 text-end clrGrid offset-md-4">GRID:</div>
+                <div class="col-md-1 col-3 text-center clrGrid" id="currentGrid"></div>
+                <div class="col-md-1 col-3 text-end clrGrid" id="TotImport"></div>
             </div>
             <div class="row">
-                <div class="col-2 text-end clrPV offset-4">PV:</div>
-                <div class="col-2 text-start clrPV" id="currentPV"></div>
+                <div class="col-md-1 col-2 offset-2 text-end clrPV offset-md-4">PV:</div>
+                <div class="col-md-1 col-3 text-center clrPV" id="currentPV"></div>
+                <div class="col-md-1 col-3 text-end clrPV" id="TotProd"></div>
             </div>
             <div class="row">
-                <div class="col-2 text-end clrBatt offset-4">Battery:</div>
-                <div class="col-2 text-start clrBatt" id="currentBattery"></div>
+                <div class="col-md-1 col-2 offset-2 text-end clrBatt offset-md-4">Bat:</div>
+                <div class="col-md-1 col-3 text-center clrBatt" id="currentBattery"></div>
+                <div class="col-md-1 col-3 text-center clrBatt"></div>
             </div>
             <div class="row">
-                <div class="col-2 text-end  offset-4">Load:</div>
-                <div class="col-2 text-start " id="currentLoad"></div>
+                <div class="col-md-1 col-2 offset-2 text-end offset-md-4 clrLoad">Load:</div>
+                <div class="col-md-1 col-3 text-center clrLoad" id="currentLoad"></div>
+                <div class="col-md-1 col-3 text-center clrLoad"></div>
             </div>
         </div>
         <script>
@@ -106,8 +127,9 @@
             function addDays(date, days) {
                 var result = new Date(date);
                 result.setDate(result.getDate() + days);
-                console.log(date);
-                console.log(result);
+                if (result > new Date()) {
+                    result = new Date()
+                }
                 return result;
             }
 
@@ -136,6 +158,8 @@
 
             if (isPostBack()) {
                 strDate = $.cookie("date");
+            } else {
+                $.removeCookie("date", { path: '/' })
             }
 
             var reqDate = new Date()
@@ -181,6 +205,13 @@
                 $('#currentPV').text(lastRow.PV)
                 $('#currentBattery').text(lastRow.Battery)
                 $('#currentLoad').text(lastRow.Load)
+                if (lastRow.TotProd === undefined) {
+                    $('#TotProd').text('NA')
+                    $('#TotImport').text('NA')
+                } else {
+                    $('#TotProd').text(Number(lastRow.TotProd / 1000.0).toFixed(2))
+                    $('#TotImport').text(Number(lastRow.TotImport / 1000).toFixed(2))
+                }
 
                 var chart = new Chart('chart', {
                     type: 'bar',
@@ -215,6 +246,7 @@
                         ]
                     },
                     options: {
+                        maintainAspectRatio: false,
                         tooltips: {
                             // Overrides the global setting
                             mode: 'label'

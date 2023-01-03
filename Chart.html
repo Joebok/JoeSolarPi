@@ -145,12 +145,12 @@
             }
 
             function GetDateStringPage(d) {
-                var str = d.getUTCFullYear().toString() + '-' + (d.getUTCMonth() + 1).toString() + '-' + ('00' + d.getUTCDate().toString()).slice(-2);
+                var str = d.getUTCFullYear().toString() + '-' + ('00' + (d.getUTCMonth() + 1).toString()).slice(-2) + '-' + ('00' + d.getUTCDate().toString()).slice(-2);
                 return str;
             }
 
             function GetDateStringFile(d) {
-                var str = d.getUTCFullYear().toString() + (d.getUTCMonth() + 1).toString() + ('00' + d.getUTCDate().toString()).slice(-2);
+                var str = d.getUTCFullYear().toString() + ('00' + (d.getUTCMonth() + 1).toString()).slice(-2) + ('00' + d.getUTCDate().toString()).slice(-2);
                 return str;
             }
 
@@ -181,6 +181,8 @@
                 EndTime = "17:00";
             }
             $('#sEndTime').val(EndTime);
+
+            console.log(todayURL);
 
             d3.csv(todayURL, d3.autoType)
                 .then(makeChart);

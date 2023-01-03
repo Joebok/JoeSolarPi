@@ -35,7 +35,7 @@ def getYesterdayData():
 
         dailyEnergyURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
         debug_log(dailyEnergyURL, False)
-        day_data = requests.get(dailyEnergyURL, verify=False, timeout = responseTimeout).json()
+        day_data = GetRequestResponse(dailyEnergyURL)
 
         global yesterdayConsump 
         global yesterdayProduction 
@@ -68,6 +68,18 @@ def getYesterdayData():
     debug_log("Yesterday Consumption: {} KWh".format(yesterdayConsump), True)
     debug_log(status, True)
 
+def GetRequestResponse(URL):
+    i = 0
+    while i < 6:
+        try:
+            i = 7
+            return requests.get(URL, verify=False, timeout = responseTimeout).json()
+        except (requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            i += 1
+            debug_log(("retrying connection...{}").format(i),True)
+            time.sleep(1)
+    return ""
+
 # get current production and consumption
 def getSolarData():
     debug_log("getSolarData", False)
@@ -83,7 +95,7 @@ def getSolarData():
 
         dailyEnergyURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/energyDetails?api_key=' +api_key+'&timeUnit=DAY&startTime='+startTime+'&endTime='+endTime
         debug_log(dailyEnergyURL, False)
-        energy_data = requests.get(dailyEnergyURL, verify=False, timeout = responseTimeout).json()
+        energy_data = GetRequestResponse(dailyEnergyURL)
 
         debug_log(energy_data, False)
 
@@ -106,7 +118,7 @@ def getSolarData():
 
         currentPowerURL = 'https://monitoringapi.solaredge.com/%20site/'+ site_id + '/currentPowerFlow?api_key=' +api_key
         debug_log(currentPowerURL, False)
-        power_data = requests.get(currentPowerURL, verify=False, timeout = responseTimeout).json()
+        power_data = GetRequestResponse(currentPowerURL)
         debug_log(power_data, False)
 
         #get units

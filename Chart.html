@@ -214,6 +214,8 @@
                     $('#TotProd').text(Number(lastRow.TotProd / 1000.0).toFixed(2))
                     $('#TotImport').text(Number(lastRow.TotImport / 1000).toFixed(2))
                 }
+                $('#TotProd').text(Number(d3.max(solarData, function (d) { return Number(d.TotProd) }) / 1000).toFixed(2))
+                $('#TotImport').text(Number(d3.max(solarData, function (d) { return Number(d.TotImport) }) / 1000).toFixed(2))
 
                 var chart = new Chart('chart', {
                     type: 'bar',
